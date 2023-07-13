@@ -1,15 +1,19 @@
 package com.example.superspring.blob;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.RequestScope;
 
 import com.azure.core.util.BinaryData;
+import com.azure.storage.blob.BlobClient;
 import com.azure.storage.blob.BlobContainerClient;
 import com.azure.storage.blob.BlobServiceClient;
 import com.azure.storage.blob.BlobServiceClientBuilder;
@@ -55,12 +59,25 @@ public class BlobStorageAdapter implements BlobStorage {
     }
 
     @Override
-    public List<byte[]> downloadFiles(String containerName) {
+    public List<ByteArrayOutputStream> downloadFiles(String containerName) {
         BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
         return containerClient.listBlobs().stream().map((item) -> {
-            return containerClient.getBlobClient(item.getName()).downloadContent().toBytes();
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            containerClient.getBlobClient(item.getName()).downloadStream(stream);
+            return stream;
         }).toList();
 
+    }
+
+    @Override
+    public void uploadFile(String containerName, String blobName, InputStream stream, Map<String, String> metadata) {
+        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+        BlobClient blobClient = containerClient.getBlobClient(blobName);
+        blobClient.upload(stream);
+        if (metadata != null && !metadata.isEmpty()) {
+            blobClient.setMetadata(metadata);
+
+        }
     }
 
 }
