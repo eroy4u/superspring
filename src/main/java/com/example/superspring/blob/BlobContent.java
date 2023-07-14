@@ -4,16 +4,16 @@ import java.util.Map;
 
 public class BlobContent {
 
-    private byte[] contentStream;
+    private byte[] content;
 
     private Map<String, String> metadata;
 
-    public byte[] getContentStream() {
-        return contentStream;
+    public byte[] getContent() {
+        return content;
     }
 
-    public void setContentStream(byte[] contentStream) {
-        this.contentStream = contentStream;
+    public void setContent(byte[] contentStream) {
+        this.content = contentStream;
     }
 
     public Map<String, String> getMetadata() {

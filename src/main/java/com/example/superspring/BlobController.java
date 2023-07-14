@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.superspring.blob.AesUtility;
+import com.example.superspring.blob.AesUtility.EncryptionParams;
 import com.example.superspring.blob.BlobContent;
 import com.example.superspring.blob.BlobStorage;
 
@@ -51,12 +52,13 @@ public class BlobController {
 		String containerName = "6597ba0f-c5e8-44b2-8315-a3570500a18a";
 
 		FileOutputStream encryptedStream = new FileOutputStream("ABCDE.encrypted.txt");
-		String keyAndIv = AesUtility.encryptFile(AesUtility.AES_CBC_PKCS5_PADDING, new FileInputStream("ABCDE.txt"),
-				encryptedStream);
+		EncryptionParams encryptionParams = AesUtility.encryptFile(AesUtility.AES_GCM_NOPADDING,
+				new FileInputStream("ABCDE.txt"), encryptedStream);
 		encryptedStream.close();
 
 		FileInputStream encryptedInput = new FileInputStream("ABCDE.encrypted.txt");
-		Map<String, String> metadata = Collections.singletonMap("keyAndIv", keyAndIv);
+		Map<String, String> metadata = Collections.singletonMap("encryption",
+				encryptionParams.publicKey + ":" + encryptionParams.iv);
 		blobContainer.uploadFile(containerName, "ABCDE.encrypted.txt", encryptedInput, metadata);
 		return "success";
 	}
@@ -74,12 +76,12 @@ public class BlobController {
 		if (firstBlob.equals("ABCDE.encrypted.txt")) {
 			BlobContent content = blobContainer.downloadFile(containerName, firstBlob);
 			Map<String, String> metadata = content.getMetadata();
-			String keyAndIv = metadata.get("keyAndIv");
+			String keyAndIv = metadata.get("encryption");
 			String[] splits = keyAndIv.split(":");
 
 			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-			AesUtility.decryptFile(AesUtility.AES_CBC_PKCS5_PADDING, splits[0], splits[1],
-					new ByteArrayInputStream(content.getContentStream()), outputStream);
+			AesUtility.decryptFile(AesUtility.AES_GCM_NOPADDING, splits[0], splits[1],
+					new ByteArrayInputStream(content.getContent()), outputStream);
 
 			return "The content of the encrypted file is:" + outputStream.toString();
 		}

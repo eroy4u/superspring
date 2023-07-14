@@ -83,7 +83,7 @@ public class BlobStorageAdapter implements BlobStorage {
 
         BlobContent content = new BlobContent();
 
-        content.setContentStream(blobClient.downloadContent().toBytes());
+        content.setContent(blobClient.downloadContent().toBytes());
         content.setMetadata(blobClient.getProperties().getMetadata());
         return content;
     }
