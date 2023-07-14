@@ -1,5 +1,6 @@
 package com.example.superspring;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.superspring.blob.AesUtility;
+import com.example.superspring.blob.BlobContent;
 import com.example.superspring.blob.BlobStorage;
 
 @RestController
@@ -49,7 +51,8 @@ public class BlobController {
 		String containerName = "6597ba0f-c5e8-44b2-8315-a3570500a18a";
 
 		FileOutputStream encryptedStream = new FileOutputStream("ABCDE.encrypted.txt");
-		String keyAndIv = AesUtility.encryptFile(new FileInputStream("ABCDE.txt"), encryptedStream);
+		String keyAndIv = AesUtility.encryptFile(AesUtility.AES_CBC_PKCS5_PADDING, new FileInputStream("ABCDE.txt"),
+				encryptedStream);
 		encryptedStream.close();
 
 		FileInputStream encryptedInput = new FileInputStream("ABCDE.encrypted.txt");
@@ -59,13 +62,28 @@ public class BlobController {
 	}
 
 	@GetMapping("/testDownload")
-	public String testDownload() {
+	public String testDownload() throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException,
+			InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, IOException {
 		String containerName = "6597ba0f-c5e8-44b2-8315-a3570500a18a";
-		List<ByteArrayOutputStream> downloadFiles = blobContainer.downloadFiles(containerName);
+		List<String> downloadFiles = blobContainer.listFiles(containerName);
 		if (downloadFiles.size() <= 0) {
 			return "no file";
 		}
-		return new String(downloadFiles.get(0).toByteArray());
+
+		String firstBlob = downloadFiles.get(0);
+		if (firstBlob.equals("ABCDE.encrypted.txt")) {
+			BlobContent content = blobContainer.downloadFile(containerName, firstBlob);
+			Map<String, String> metadata = content.getMetadata();
+			String keyAndIv = metadata.get("keyAndIv");
+			String[] splits = keyAndIv.split(":");
+
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			AesUtility.decryptFile(AesUtility.AES_CBC_PKCS5_PADDING, splits[0], splits[1],
+					new ByteArrayInputStream(content.getContentStream()), outputStream);
+
+			return "The content of the encrypted file is:" + outputStream.toString();
+		}
+		return firstBlob;
 	}
 
 	@GetMapping("/testNothing")

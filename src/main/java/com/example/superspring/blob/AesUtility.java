@@ -19,9 +19,17 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.KeyGenerator;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
+import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class AesUtility {
+    /**
+     *
+     */
+    public static final String AES_CBC_PKCS5_PADDING = "AES/CBC/PKCS5Padding";
+    public static final String AES_GCM_NOPADDING = "AES/GCM/NoPadding";
+
     public static SecretKey generateKey(int n) throws NoSuchAlgorithmException {
         KeyGenerator keyGenerator = KeyGenerator.getInstance("AES");
         keyGenerator.init(n);
@@ -35,18 +43,31 @@ public class AesUtility {
         return iv;
     }
 
-    public static String encryptFile(InputStream inputStream, OutputStream outputStream)
+    public static String encryptFile(String algorithm, InputStream inputStream, OutputStream outputStream)
             throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException,
             InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, IOException {
         SecretKey key = AesUtility.generateKey(256);
-        String algorithm = "AES/CBC/PKCS5Padding";
         byte[] ivBytes = AesUtility.generateIvBytes();
         IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
+        // GCMParameterSpec ivParameterSpec = new GCMParameterSpec(ivBytes.length,
+        // ivBytes);
 
         encryptFile(algorithm, key, ivParameterSpec, inputStream, outputStream);
 
         Encoder encoder = Base64.getEncoder();
         return encoder.encodeToString(key.getEncoded()) + ":" + encoder.encodeToString(ivBytes);
+    }
+
+    public static void decryptFile(String algorithm, String base64Key, String base64Iv, InputStream inputStream,
+            OutputStream outputStream) throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException,
+            InvalidAlgorithmParameterException, BadPaddingException, IllegalBlockSizeException, IOException {
+        byte[] encodedKey = Base64.getDecoder().decode(base64Key);
+        SecretKey key = new SecretKeySpec(encodedKey, 0, encodedKey.length, "AES");
+
+        byte[] ivBytes = Base64.getDecoder().decode(base64Iv);
+        IvParameterSpec ivParameterSpec = new IvParameterSpec(ivBytes);
+
+        decryptFile(algorithm, key, ivParameterSpec, inputStream, outputStream);
     }
 
     public static void encryptFile(String algorithm, SecretKey key, IvParameterSpec iv, InputStream inputStream,
@@ -67,8 +88,8 @@ public class AesUtility {
         if (outputBytes != null) {
             outputStream.write(outputBytes);
         }
-        // inputStream.close();
-        // outputStream.close();
+        inputStream.close();
+        outputStream.close();
     }
 
     public static void decryptFile(String algorithm, SecretKey key, IvParameterSpec iv, InputStream inputStream,

@@ -59,13 +59,9 @@ public class BlobStorageAdapter implements BlobStorage {
     }
 
     @Override
-    public List<ByteArrayOutputStream> downloadFiles(String containerName) {
+    public List<String> listFiles(String containerName) {
         BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
-        return containerClient.listBlobs().stream().map((item) -> {
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-            containerClient.getBlobClient(item.getName()).downloadStream(stream);
-            return stream;
-        }).toList();
+        return containerClient.listBlobs().stream().map((item) -> item.getName()).toList();
 
     }
 
@@ -76,8 +72,20 @@ public class BlobStorageAdapter implements BlobStorage {
         blobClient.upload(stream);
         if (metadata != null && !metadata.isEmpty()) {
             blobClient.setMetadata(metadata);
-
         }
+    }
+
+    @Override
+    public BlobContent downloadFile(String containerName, String blobName) {
+
+        BlobContainerClient containerClient = blobServiceClient.getBlobContainerClient(containerName);
+        BlobClient blobClient = containerClient.getBlobClient(blobName);
+
+        BlobContent content = new BlobContent();
+
+        content.setContentStream(blobClient.downloadContent().toBytes());
+        content.setMetadata(blobClient.getProperties().getMetadata());
+        return content;
     }
 
 }

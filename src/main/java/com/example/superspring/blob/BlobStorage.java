@@ -1,6 +1,5 @@
 package com.example.superspring.blob;
 
-import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
@@ -10,7 +9,9 @@ public interface BlobStorage {
 
   String generateSasToken(String containerName);
 
-  List<ByteArrayOutputStream> downloadFiles(String containerName);
+  List<String> listFiles(String containerName);
+
+  BlobContent downloadFile(String containerName, String blob);
 
   void uploadFile(String container, String blob, InputStream stream, Map<String, String> metadata);
 }
